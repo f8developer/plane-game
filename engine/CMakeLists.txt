@@ -25,7 +25,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 # Link dependencies
-target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
+target_link_libraries(${PROJECT_NAME} PRIVATE raylib magic_enum)
 
 # Set output name
 set_target_properties(${PROJECT_NAME} PROPERTIES

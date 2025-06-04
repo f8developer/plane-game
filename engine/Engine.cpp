@@ -7,27 +7,60 @@
 #include "Window.h"
 #include "raylib.h"
 #include "IGame.h"
+#include "Log.h"
 
 void Engine::Start(int windowWidth, int windowHeight, const std::string& windowTitleL,
-                    unique_ptr<IGame> gameP)
+                   unique_ptr<IGame> gameP)
 {
-    windowTitle = windowTitleL;
-    game = std::move(gameP);
+    try {
+        Log::SetupRaylibLogging();
+        ENGINE_LOG(LOG_INFO, "Engine initialization started");
 
-    auto window = Window(windowWidth, windowHeight, std::move(windowTitle));
-    SetTargetFPS(60);
+        #if GDEBUG
+            ENGINE_LOG(LOG_WARNING, "RUNNING A DEBUG VERSION OF THE GAME!");
+        #endif
 
-    game->Load();
+        windowTitle = windowTitleL;
+        game = std::move(gameP);
 
-    while (!window.ShouldClose()) {
+        ENGINE_LOG(LOG_INFO, "Creating window (%dx%d): %s", windowWidth, windowHeight, windowTitle.c_str());
+        auto window = Window(windowWidth, windowHeight, std::move(windowTitle));
 
-        game->Update(0);
+        SetTargetFPS(60);
+        ENGINE_LOG(LOG_INFO, "Target FPS set to 60");
+        ENGINE_LOG(LOG_INFO, "Window created successfully");
 
-        renderer.BeginDraw();
-        renderer.Clear();
+        ENGINE_LOG(LOG_INFO, "Loading game...");
+        game->Load();
+        ENGINE_LOG(LOG_INFO, "Game loaded successfully");
 
-        game->Draw(renderer);
+        ENGINE_LOG(LOG_INFO, "Starting main game loop");
 
-        renderer.EndDraw();
+        while (!window.ShouldClose()) {
+            game->Update(0);
+
+            renderer.BeginDraw();
+            renderer.Clear();
+
+            game->Draw(renderer);
+
+            renderer.EndDraw();
+
+        }
+
+        ENGINE_LOG(LOG_INFO, "Unloading game...");
+        game->Unload();
+
+        ENGINE_LOG(LOG_INFO, "Engine shutdown completed successfully");
     }
+    catch (const std::exception& e) {
+        ENGINE_LOG(LOG_FATAL, "Engine exception: %s", e.what());
+    }
+    catch (...) {
+        ENGINE_LOG(LOG_FATAL, "Unknown engine exception occurred");
+    }
+
+    // CRITICAL: Ensure all logs are written before program exits
+    ENGINE_LOG(LOG_INFO, "Flushing logs and shutting down logging system");
+    Log::Shutdown();
 }

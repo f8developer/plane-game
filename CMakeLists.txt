@@ -22,6 +22,12 @@ if(ENABLE_WARNINGS)
     endif()
 endif()
 
+# Add Debug definitions for when needed
+add_compile_definitions(
+        $<$<CONFIG:Debug>:_DEBUG>
+        $<$<CONFIG:Debug>:GDEBUG>
+)
+
 # Dependencies
 include(FetchContent)
 
@@ -37,6 +43,15 @@ if(NOT raylib_FOUND)
     FetchContent_MakeAvailable(raylib)
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 endif()
+
+# magic_enum
+FetchContent_Declare(
+        magic_enum
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+        GIT_TAG        v0.9.7 # Or latest stable tag
+)
+FetchContent_MakeAvailable(magic_enum)
+
 
 # Add subdirectories
 add_subdirectory(engine)

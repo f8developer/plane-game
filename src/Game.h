@@ -10,9 +10,10 @@
 
 class Game : public IGame {
 public:
-    void Load();
-    void Update(float d_time);
-    void Draw(const Renderer& renderer);
+    void Load() override;
+    void Unload() override;
+    void Update(float d_time) override;
+    void Draw(const Renderer& renderer) override;
 };
 
 

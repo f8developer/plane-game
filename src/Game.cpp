@@ -8,6 +8,10 @@ void Game::Load() {
 
 }
 
+void Game::Unload() {
+
+}
+
 void Game::Update(float d_time) {
 
 }

@@ -12,6 +12,7 @@ public:
     virtual ~IGame() = default;
 
     virtual void Load() = 0;
+    virtual void Unload() = 0;
     virtual void Update(float d_time) = 0;
     virtual void Draw(const Renderer& renderer) = 0;
 };

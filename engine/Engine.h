@@ -7,6 +7,8 @@
 
 #include <string>
 #include <memory>
+
+#include "Defines.h"
 #include "Renderer.h"
 
 using std::unique_ptr;
@@ -15,7 +17,7 @@ class IGame;
 
 class Engine {
 public:
-    __declspec(dllexport) void Start(int windowWidth, int windowHeight, const std::string& windowTitleL,
+    DLLEX void Start(int windowWidth, int windowHeight, const std::string& windowTitleL,
                                         unique_ptr<IGame> gameP);
 
     std::string windowTitle;
