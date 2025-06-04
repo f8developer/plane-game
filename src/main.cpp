@@ -10,7 +10,7 @@ int main() {
     unique_ptr<Game> game = std::make_unique<Game>();
 
     Engine engine;
-    engine.Start(GAME_WIDTH,GAME_HEIGHT, GAME_TITLE, reinterpret_cast<unique_ptr<Game>&&>(game));
+    engine.Start(GAME_WIDTH, GAME_HEIGHT, GAME_TITLE, std::move(game));
 
     return 0;
 }

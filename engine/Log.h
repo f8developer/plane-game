@@ -21,7 +21,7 @@ const str GAME_LOG_FILE = "runtime.log";
 class Log {
 public:
     // Singleton pattern for thread safety
-    static Log& Instance();
+    DLLEX static Log& Instance();
 
     Log(const Log&) = delete;
     Log& operator=(const Log&) = delete;
@@ -87,26 +87,21 @@ private:
     static str GetLabel(TraceLogLevel level);
     static std::string GetTime();
     static void LogCallback(int level, const char* text, va_list args);
-
-    TraceLogLevel minLogLevel_{LOG_INFO};
 };
 
 #if GDEBUG
-constexpr TraceLogLevel MAX_LOG_LEVEL = LOG_DEBUG;
+constexpr TraceLogLevel MIN_LOG_LEVEL = LOG_ALL;
 #else
-constexpr TraceLogLevel MAX_LOG_LEVEL = LOG_FATAL;
+constexpr TraceLogLevel MIN_LOG_LEVEL = LOG_DEBUG;
 #endif
 
 #define LOG(level)                                  \
-    if (level > MAX_LOG_LEVEL)                      \
+    if (level <= MIN_LOG_LEVEL)                      \
         ;                                           \
     else                                            \
         Log::LogStream(level)
 
-#define ENGINE_LOG(level, ...)                      \
-    if (level > MAX_LOG_LEVEL)                      \
-        ;                                           \
-    else                                            \
+#define ENGINE_LOG(level, ...) \
         Log::EngineLog(level, __VA_ARGS__)
 
 

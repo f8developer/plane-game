@@ -7,24 +7,42 @@
 
 #include <string>
 #include <memory>
+#include <thread>
+#include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+#include <atomic>
 
 #include "Defines.h"
-#include "Renderer.h"
+#include "IGame.h"
 
 using std::unique_ptr;
 
-class IGame;
-
 class Engine {
 public:
-    DLLEX void Start(int windowWidth, int windowHeight, const std::string& windowTitleL,
-                                        unique_ptr<IGame> gameP);
+    static constexpr size_t NUM_WORKER_THREADS = 4;
+    static constexpr float FIXED_TIME_STEP = 1.0f / 60.0f;
+
+    DLLEX void Start(int windowWidth, int windowHeight, const std::string& windowTitle,
+                    std::unique_ptr<IGame> game);
+
+private:
+    void ProcessNonRenderingTasks();
+    void ProcessFixedUpdates(float deltaTime);
 
     std::string windowTitle;
-    unique_ptr<IGame> game;
-    Renderer renderer {};
+    std::unique_ptr<IGame> game;
+
+    float accumulator = 0.0f;
+    std::atomic<bool> shouldExit{false};
+
+    // Non-rendering tasks (worker threads)
+    std::queue<std::function<void()>> nonRenderingTasks;
+    std::mutex taskMutex;
+    std::condition_variable taskCondition;
+    std::vector<std::thread> workerThreads;
 };
-
-
 
 #endif //ENGINE_H

@@ -1,10 +1,15 @@
+cmake_minimum_required(VERSION 3.31)
+cmake_policy(VERSION 3.31)
+cmake_policy(SET CMP0048 NEW)
+cmake_policy(SET CMP0077 NEW)
+cmake_policy(SET CMP0000 NEW)
+
 # Disable deprecation warnings
 set(CMAKE_DEPRECATION_WARNING OFF CACHE BOOL "Disable CMake deprecation warnings" FORCE)
 
 # Option for enabling warnings
 option(ENABLE_WARNINGS "Enable compiler warnings" OFF)
 
-cmake_minimum_required(VERSION 3.31)
 project(plane_game VERSION 1.0.0 LANGUAGES CXX)
 
 # Set C++ standard globally
@@ -42,16 +47,25 @@ if(NOT raylib_FOUND)
     )
     FetchContent_MakeAvailable(raylib)
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    # Disable version check for raylib
+    set(RAYLIB_VERSION_CHECK OFF CACHE BOOL "" FORCE)
 endif()
 
 # magic_enum
 FetchContent_Declare(
         magic_enum
         GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
-        GIT_TAG        v0.9.7 # Or latest stable tag
+        GIT_TAG        v0.9.7
 )
 FetchContent_MakeAvailable(magic_enum)
 
+# EnTT
+FetchContent_Declare(
+    entt
+    GIT_REPOSITORY https://github.com/skypjack/entt.git
+    GIT_TAG v3.15.0
+)
+FetchContent_MakeAvailable(entt)
 
 # Add subdirectories
 add_subdirectory(engine)

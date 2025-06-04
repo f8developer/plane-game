@@ -1,13 +1,11 @@
-//
-// Created by ivanr on 2.6.2025 г..
-//
-
 #include "Log.h"
 #include "magic_enum/magic_enum.hpp"
 #include <iostream>
 #include <cstdarg>
 #include <iomanip>
 #include <chrono>
+#include <sstream>
+#include <format>
 
 std::unique_ptr<Log> Log::instance_ = nullptr;
 std::once_flag Log::initFlag_;
@@ -28,7 +26,6 @@ Log::Log() {
 
     InitializeFile();
 
-    // Start async writer thread if enabled
     if (asyncMode_) {
         writerThread_ = std::make_unique<std::thread>(&Log::ProcessLogQueue, this);
     }
@@ -49,25 +46,27 @@ void Log::InitializeFile() {
 void Log::WriteLog(TraceLogLevel level, const std::string& message) {
     std::string timestamp = GetTime();
     std::string label = GetLabel(level);
+
     std::string fullMessage = timestamp + " " + label + " -> " + message;
 
-    // Console output (immediate)
+    // Print to console
     std::cout << fullMessage << std::endl;
 
     if (asyncMode_) {
-        // Queue for async writing
         {
             std::lock_guard<std::mutex> lock(queueMutex_);
             logQueue_.push({fullMessage, level, timestamp});
         }
         queueCondition_.notify_one();
     } else {
-        // Synchronous writing
         WriteToFile(fullMessage);
     }
 }
 
 void Log::WriteLog(TraceLogLevel level, const char* format, ...) {
+    if (level <= MIN_LOG_LEVEL)
+        return; // Skip logs above max level
+
     va_list args;
     va_start(args, format);
 
@@ -82,7 +81,6 @@ void Log::WriteLog(TraceLogLevel level, const char* format, ...) {
         return;
     }
 
-    // Format the string
     std::string buffer(size + 1, '\0');
     std::vsnprintf(buffer.data(), buffer.size(), format, args);
     va_end(args);
@@ -95,7 +93,7 @@ void Log::WriteToFile(const std::string& message) {
     std::lock_guard<std::mutex> lock(fileMutex_);
     if (logFile_.is_open()) {
         logFile_ << message << std::endl;
-        logFile_.flush(); // Ensure immediate write
+        logFile_.flush();
     }
 }
 
@@ -119,17 +117,18 @@ void Log::ProcessLogQueue() {
 }
 
 void Log::LogCallback(int level, const char *text, va_list args) {
-    // Properly handle va_list from raylib
     char buffer[1024];
     std::vsnprintf(buffer, sizeof(buffer), text, args);
     Instance().WriteLog(static_cast<TraceLogLevel>(level), "%s", buffer);
 }
 
 void Log::EngineLog(const TraceLogLevel level, const char *format, ...) {
+    if (level <= MIN_LOG_LEVEL)
+        return; // Skip logs above max level
+
     va_list args;
     va_start(args, format);
 
-    // Get required buffer size
     va_list args_copy;
     va_copy(args_copy, args);
     int size = std::vsnprintf(nullptr, 0, format, args_copy);
@@ -140,13 +139,15 @@ void Log::EngineLog(const TraceLogLevel level, const char *format, ...) {
         return;
     }
 
-    // Format the string
     std::string buffer(size + 1, '\0');
     std::vsnprintf(buffer.data(), buffer.size(), format, args);
     va_end(args);
 
-    buffer.resize(size); // Remove null terminator
-    Instance().WriteLog(level, "ENGINE: %s", buffer.c_str());
+    buffer.resize(size);
+
+    // Compose full message without fmt::format
+    std::string fullMsg = std::string("ENGINE: ") + buffer;
+    Instance().WriteLog(level, fullMsg);
 }
 
 void Log::SetupRaylibLogging() {
@@ -185,9 +186,9 @@ void Log::Shutdown() {
     }
 }
 
-str Log::GetLabel(const TraceLogLevel level) {
+std::string Log::GetLabel(const TraceLogLevel level) {
     auto name = magic_enum::enum_name(level);
-    return std::string(name.substr(4));
+    return std::string(name.substr(4));  // Assuming label starts at pos 4
 }
 
 std::string Log::GetTime() {
@@ -204,8 +205,8 @@ std::string Log::GetTime() {
 }
 
 // LogStream implementation
-Log::LogStream::LogStream(TraceLogLevel level)
-    : level_(level), shouldLog(static_cast<i32>(level) <= MAX_LOG_LEVEL) {
+Log::LogStream::LogStream(const TraceLogLevel level)
+    : level_(level), shouldLog(level <= MIN_LOG_LEVEL) {
 }
 
 Log::LogStream::~LogStream() {
