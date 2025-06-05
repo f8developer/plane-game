@@ -8,7 +8,7 @@
 #include <memory>
 #include "IGame.h"
 #include <vector>
-#include "IScene.h"
+#include "scenes/IScene.h"
 
 class Game : public IGame {
 public:

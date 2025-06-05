@@ -14,10 +14,12 @@ namespace render{
     void EndDraw();
 
     DLLEX void DrawTexture(const Texture2D* texture, int x, int y, Color color);
+    DLLEX void DrawTextureV(const Texture2D *texture, Vector2 position, Color color);
     DLLEX void DrawText(const str& text, int x, int y, int fontSize, Color color);
     DLLEX int MeasureText(const str& text, int fontSize);
     DLLEX int GetScreenWidth();
     DLLEX int GetScreenHeight();
+    DLLEX int GetFPS();
 }
 
 

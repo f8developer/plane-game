@@ -10,4 +10,8 @@ namespace key_manager {
     bool IsKeyPressed(const int& key) {
         return ::IsKeyPressed(key);
     }
+
+    bool IsKeyDown(const int& key) {
+        return ::IsKeyDown(key);
+    }
 }

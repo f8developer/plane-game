@@ -5,9 +5,16 @@
 #ifndef SCENEGAME_H
 #define SCENEGAME_H
 
-#include "../IScene.h"
-#include "raylib.h"
+#include "IScene.h"
+#include "Log.h"
+#include "Renderer.h"
+#include "../../engine/AssetManager.h"
+#include "components/DrawingComponent.h"
+#include "systems/MovementSystem.h"
+#include "systems/RenderSystem.h"
+#include "systems/SystemManager.h"
 
+#define SCENE_NAME ToSceneId(SceneName::SceneGame)
 
 class SceneGame final : public IScene {
 public:
@@ -20,8 +27,10 @@ public:
     void AsyncUpdate(float d_time) override;
     void Draw() override;
 
-private:
-    Texture2D* texture = {};
+protected:
+    void SpawnPlayer();
+    entt::registry registry;
+    SystemManager systemManager;
 };
 
 

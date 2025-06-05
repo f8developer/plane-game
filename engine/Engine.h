@@ -23,10 +23,13 @@ using std::unique_ptr;
 class Engine {
 public:
     static constexpr size_t NUM_WORKER_THREADS = 4;
-    static constexpr float FIXED_TIME_STEP = 1.0f / 60.0f;
+    static constexpr float FIXED_TIME_STEP = 0.02f;  // 20ms
 
     DLLEX void Start(int windowWidth, int windowHeight, const std::string& windowTitle,
                     std::unique_ptr<IGame> game);
+    
+    // Enable or disable profiling
+    DLLEX static void SetProfilingEnabled(bool enabled, int framesBeforeProfiling = 60);
 
 private:
     void ProcessNonRenderingTasks();
@@ -43,6 +46,8 @@ private:
     std::mutex taskMutex;
     std::condition_variable taskCondition;
     std::vector<std::thread> workerThreads;
+
+    static int framesBeforeProfiling;
 };
 
 #endif //ENGINE_H

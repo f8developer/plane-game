@@ -9,8 +9,17 @@
 #include "IGame.h"
 #include "Log.h"
 #include "Renderer.h"
+#include "Profiler.h"
+
+int Engine::framesBeforeProfiling = 60;
+
+void Engine::SetProfilingEnabled(bool enabled, int framesBeforeProfiling) {
+    Profiler::GetInstance().SetEnabled(enabled);
+    Engine::framesBeforeProfiling = framesBeforeProfiling;
+}
 
 void Engine::ProcessNonRenderingTasks() {
+    PROFILE_SCOPE("ProcessNonRenderingTasks");
     while (!shouldExit) {
         std::unique_lock<std::mutex> lock(taskMutex);
         taskCondition.wait(lock, [this] { 
@@ -31,6 +40,7 @@ void Engine::ProcessNonRenderingTasks() {
 }
 
 void Engine::ProcessFixedUpdates(float deltaTime) {
+    PROFILE_SCOPE("ProcessFixedUpdates");
     accumulator += deltaTime;
 
     while (accumulator >= FIXED_TIME_STEP) {
@@ -72,28 +82,42 @@ void Engine::Start(int windowWidth, int windowHeight, const str& windowTitleL,
         ENGINE_LOG(LOG_DEBUG, "Starting main game loop");
 
         while (!window.ShouldClose()) {
+            PROFILE_SCOPE("Frame");
             const float deltaTime = GetFrameTime();
             
             ProcessFixedUpdates(deltaTime);
 
             // Queue non-rendering async work
             {
+                PROFILE_SCOPE("QueueAsyncWork");
                 std::lock_guard<std::mutex> lock(taskMutex);
                 nonRenderingTasks.push([this, deltaTime]() {
-                    // Only non-rendering logic here!
+                    PROFILE_SCOPE("AsyncUpdate");
                     game->AsyncUpdate(deltaTime);
-                    // NO DRAWING CALLS IN WORKER THREADS!
                 });
             }
             taskCondition.notify_one();
 
             // All rendering happens on main thread
-            game->Update(deltaTime);
+            {
+                PROFILE_SCOPE("GameUpdate");
+                game->Update(deltaTime);
+            }
 
-            BeginDrawing();
-            ClearBackground(BLACK);
-            game->Draw();
-            EndDrawing();
+            {
+                PROFILE_SCOPE("Rendering");
+                BeginDrawing();
+                ClearBackground(BLACK);
+                game->Draw();
+                EndDrawing();
+            }
+
+            // Print frame stats every 60 frames
+            static int frameCounter = 0;
+            if (++frameCounter >= framesBeforeProfiling) {
+                Profiler::GetInstance().PrintFrameStats();
+                frameCounter = 0;
+            }
         }
 
         // Cleanup threads

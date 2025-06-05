@@ -10,6 +10,8 @@ int main() {
     unique_ptr<Game> game = std::make_unique<Game>();
 
     Engine engine;
+    Engine::SetProfilingEnabled(false);
+    // Engine::SetProfilingEnabled(true, 120);
     engine.Start(GAME_WIDTH, GAME_HEIGHT, GAME_TITLE, std::move(game));
 
     return 0;

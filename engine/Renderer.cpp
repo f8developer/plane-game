@@ -22,6 +22,10 @@ namespace render {
         DrawTexture(*texture, x, y , color);
     }
 
+    void DrawTextureV(const Texture2D *texture, const Vector2 position, const Color color) {
+        DrawTextureV(*texture, position , color);
+    }
+
     void DrawText(const str &text, const int x, const int y, const int fontSize, const Color color) {
         ::DrawText(text.c_str(), x, y, fontSize, color);
     }
@@ -36,5 +40,9 @@ namespace render {
 
     int GetScreenHeight() {
         return ::GetScreenHeight();
+    }
+
+    int GetFPS() {
+        return ::GetFPS();
     }
 }

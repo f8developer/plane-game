@@ -9,6 +9,7 @@
 
 namespace key_manager {
     DLLEX bool IsKeyPressed(const int &key);
+    DLLEX bool IsKeyDown(const int &key);
 };
 
 
