@@ -7,8 +7,16 @@
 
 #include <string>
 
+#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+    #define GPLATFORM_WINDOWS
+#endif
+
 #ifndef DLLEX
-    #define DLLEX __declspec(dllexport)
+    #ifdef GPLATFORM_WINDOWS
+        #define DLLEX __declspec(dllexport)
+    #else
+        #define DLLEX
+    #endif
 #endif
 
 // Types (Rust-inspired)
@@ -27,8 +35,9 @@ using f64 = double;
 
 using str = std::string;
 
-#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
-    #define GPLATFORM_WINDOWS
-#endif
+typedef struct Vector2Int {
+    int x;                // Vector x component
+    int y;                // Vector y component
+} Vector2Int;
 
 #endif //DEFINES_H

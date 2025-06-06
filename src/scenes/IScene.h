@@ -16,6 +16,8 @@ enum class SceneName {
     SceneMainMenu,
 };
 
+static constexpr i32 ToSceneId(SceneName name) { return static_cast<i32>(name); }
+
 class IScene {
 public:
     virtual ~IScene() {}
@@ -30,7 +32,6 @@ public:
     bool GetLocking() const { return isLocking; }
     bool GetTransparent() const { return isTransparent; }
 
-    static i32 ToSceneId(SceneName name) {return static_cast<i32>(name);}
 
 protected:
     bool isLocking { true };

@@ -37,7 +37,8 @@ public:
 
     // Execute all systems of a specific type
     void ExecuteSystems(UpdateType updateType, entt::registry& registry, float deltaTime) {
-        for (const auto& system : systems[static_cast<size_t>(updateType)]) {
+        const auto& systemList = systems[static_cast<size_t>(updateType)];
+        for (const auto& system : systemList) {
             system(registry, deltaTime);
         }
     }

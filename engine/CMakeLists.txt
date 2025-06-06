@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
-project(engine VERSION 1.0.0 LANGUAGES CXX)
+project(engine VERSION 0.0.1 LANGUAGES CXX)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -12,8 +12,8 @@ file(GLOB_RECURSE ENGINE_SOURCES
     "*.h"
 )
 
-# Create shared library
-add_library(${PROJECT_NAME} SHARED ${ENGINE_SOURCES})
+# Create static library
+add_library(${PROJECT_NAME} STATIC ${ENGINE_SOURCES})
 
 # Include directories
 target_include_directories(${PROJECT_NAME}
@@ -27,7 +27,7 @@ target_include_directories(${PROJECT_NAME}
 # Link dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib magic_enum EnTT::EnTT)
 
-# Set output name
+# Set output name (optional for static libraries, but keeps consistency)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "engine"
     VERSION ${PROJECT_VERSION}

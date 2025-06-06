@@ -7,20 +7,21 @@
 
 #include "IScene.h"
 #include "Renderer.h"
+#include "components/DrawingComponent.h"
+#include "systems/SystemManager.h"
 #include <string>
-#include <chrono>
 
 class SceneMainMenu final : public IScene {
 public:
     void Load() override;
+    void Unload() override;
     void Update(float d_time) override;
     void Draw() override;
 
-private:
-    std::string menuText;
-    float blinkTimer = 0.5f;
-    bool isTextVisible = true;
-    static constexpr float BLINK_INTERVAL = 0.5f; // Blink every 0.5 seconds
+protected:
+    void SetupMenuEntities();
+    SystemManager systemManager;
+    static constexpr i32 SCENE_NAME = ToSceneId(SceneName::SceneMainMenu);
 };
 
 #endif //SCENEMAINMENU_H

@@ -6,45 +6,56 @@
 #include "KeyManager.h"
 #include "components/BasicComponent.h"
 #include "components/PlayerComponent.h"
+#include "components/DrawingComponent.h"
+#include "GameConfig.h"
 
 // A simple movement system that updates positions based on velocity
 class MovementSystem {
 public:
     static void Update(entt::registry& registry, float deltaTime) {
         // Clamp delta time to avoid physics glitches
-        deltaTime = std::min(deltaTime, 0.05f);
+        deltaTime = std::min(deltaTime, ENGINE_FIXED_TIME_STEP);
 
-        const float moveAmount = 300.0f * deltaTime;  // 300 units per second
+        // Get the camera component to access virtual resolution
+        auto cameraView = registry.view<PixelPerfectCameraComponent>();
+        if (cameraView.empty()) return;  // No camera, no movement
+        
+        // Pre-calculate movement amount
+        const float moveAmount = PLAYER_MOVE_SPEED * deltaTime;
+        
+        auto view = registry.view<TransformComponent, PlayerComponent, SpriteComponent>();
+        for (auto entity : view) {
+            auto& transform = view.get<TransformComponent>(entity);
+            const auto& player = view.get<PlayerComponent>(entity);
+            const auto& sprite = view.get<SpriteComponent>(entity);
 
-        auto view = registry.view<TransformComponent, PlayerComponent>();
-        view.each([moveAmount](auto entity, TransformComponent& transform, PlayerComponent& player) {
+            // Calculate actual movement speed
+            const float actualMoveAmount = player.moveSpeed * moveAmount;
+
             // Handle horizontal movement
             if (key_manager::IsKeyDown(KEY_RIGHT) || key_manager::IsKeyDown(KEY_D)) {
-                transform.position.x += moveAmount;
+                transform.position.x += actualMoveAmount;
             }
             if (key_manager::IsKeyDown(KEY_LEFT) || key_manager::IsKeyDown(KEY_A)) {
-                transform.position.x -= moveAmount;
+                transform.position.x -= actualMoveAmount;
             }
 
             // Handle vertical movement
             if (key_manager::IsKeyDown(KEY_UP) || key_manager::IsKeyDown(KEY_W)) {
-                transform.position.y -= moveAmount;
+                transform.position.y -= actualMoveAmount;
             }
             if (key_manager::IsKeyDown(KEY_DOWN) || key_manager::IsKeyDown(KEY_S)) {
-                transform.position.y += moveAmount;
+                transform.position.y += actualMoveAmount;
             }
 
-            // Keep player within screen bounds
-            const int screenWidth = render::GetScreenWidth();
-            const int screenHeight = render::GetScreenHeight();
-            
-            // Assuming the player sprite is 32x32 pixels (adjust these values based on your actual sprite size)
-            const float playerWidth = 32.0f;
-            const float playerHeight = 32.0f;
-            
-            transform.position.x = std::max(0.0f, std::min(transform.position.x, static_cast<float>(screenWidth - playerWidth)));
-            transform.position.y = std::max(0.0f, std::min(transform.position.y, static_cast<float>(screenHeight - playerHeight)));
-        });
+            // Calculate sprite boundaries
+            const float halfWidth = sprite.size.x / 2.0f;
+            const float halfHeight = sprite.size.y / 2.0f;
+
+            // Keep player within virtual screen bounds with proper sprite centering
+            transform.position.x = std::max(halfWidth, std::min(transform.position.x, VIRTUAL_WIDTH - halfWidth));
+            transform.position.y = std::max(halfHeight, std::min(transform.position.y, VIRTUAL_HEIGHT - halfHeight));
+        }
     }
 };
 
