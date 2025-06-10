@@ -12,6 +12,7 @@
 #include "GameConfig.h"
 #include "systems/MenuSystem.h"
 #include "systems/RenderSystem.h"
+#include "AssetManager.h"
 
 void SceneMainMenu::Load() {
     // Register systems with the system manager
@@ -25,12 +26,17 @@ void SceneMainMenu::Load() {
         SystemManager::UpdateType::Draw
     );
 
+    // Load the Lander font
+    AssetManager::AddSceneFont("lander", FONT_LANDER, SCENE_NAME, UI_MAIN_MENU_FONT_SIZE);
+    AssetManager::AddSceneFont("lander_bold", FONT_LANDER_BOLD, SCENE_NAME, UI_MAIN_MENU_FONT_SIZE);
+
     SetupMenuEntities();
     LOG_DEBUG("Loaded the Main Menu scene");
 }
 
 void SceneMainMenu::Unload() {
     systemManager.ClearAllSystems();
+    AssetManager::RemoveSceneTextures(SCENE_NAME);
     LOG_DEBUG("Unloaded the Main Menu scene");
 }
 
@@ -60,51 +66,61 @@ void SceneMainMenu::SetupMenuEntities() {
     camera.screenSpaceCamera.zoom = 1.0f;
     camera.screenSpaceCamera.rotation = 0.0f;
 
+    // Get the Lander font
+    const Font& landerFont = AssetManager::GetFont("lander");
+    const Font& landerBoldFont = AssetManager::GetFont("lander_bold");
+
     // Create title entity
     auto titleEntity = registry.create();
     auto& titleTransform = registry.emplace<TransformComponent>(titleEntity);
-    auto& titleText = registry.emplace<TextComponent>(titleEntity);
+    auto& titleText = registry.emplace<TextComponentPixelPerfect>(titleEntity);
     
     titleText.text = GAME_TITLE;
-    titleText.fontSize = UI_TITLE_FONT_SIZE;
-    titleText.color = DARKPURPLE;
+    titleText.font = landerBoldFont;
+    titleText.fontSize = UI_MAIN_MENU_FONT_SIZE * 2;
+    titleText.spacing = 1.0f;
+    titleText.tint = DARKPURPLE;
     
-    // Center the title
-    int titleWidth = render::MeasureText(std::string(titleText.text), titleText.fontSize);
+    // Center the title using MeasureTextEx with the Lander font
+    Vector2 titleSize = MeasureTextEx(landerFont, std::string(titleText.text).c_str(), titleText.fontSize, titleText.spacing);
     titleTransform.position = Vector2{
-        (VIRTUAL_WIDTH - titleWidth) / 2.0f,
-        VIRTUAL_HEIGHT / 4.0f
+        (VIRTUAL_WIDTH - titleSize.x) / 2.0f,
+        VIRTUAL_HEIGHT / 3.0f
     };
 
     // Create start text entity
     auto startTextEntity = registry.create();
     auto& startTransform = registry.emplace<TransformComponent>(startTextEntity);
-    auto& startText = registry.emplace<TextComponent>(startTextEntity);
+    auto& startText = registry.emplace<TextComponentPixelPerfect>(startTextEntity);
     
     startText.text = "INSERT CREDIT(S)";
-    startText.fontSize = UI_START_TEXT_FONT_SIZE;
-    startText.color = BLACK;
+    startText.font = landerBoldFont;
+    startText.fontSize = UI_MAIN_MENU_FONT_SIZE;
+    startText.spacing = 1.0f;
+    startText.tint = BLACK;
     
-    // Center the start text
-    int startWidth = render::MeasureText(std::string(startText.text), startText.fontSize);
+    // Center the start text using MeasureTextEx with the Lander font
+    Vector2 startSize = MeasureTextEx(landerFont, std::string(startText.text).c_str(), startText.fontSize, startText.spacing);
     startTransform.position = Vector2{
-        (VIRTUAL_WIDTH - startWidth) / 2.0f,
-        VIRTUAL_HEIGHT * 2.0f / 3.0f
+        (VIRTUAL_WIDTH - startSize.x) / 2.0f,
+        VIRTUAL_HEIGHT * 2.0f / 3.0f - 2.0f
     };
 
     // Create enter text entity
     auto enterTextEntity = registry.create();
     auto& enterTransform = registry.emplace<TransformComponent>(enterTextEntity);
-    auto& enterText = registry.emplace<TextComponent>(enterTextEntity);
+    auto& enterText = registry.emplace<TextComponentPixelPerfect>(enterTextEntity);
     
     enterText.text = "OR PRESS ENTER";
-    enterText.fontSize = UI_ENTER_TEXT_FONT_SIZE;
-    enterText.color = BLACK;
+    enterText.font = landerFont;
+    enterText.fontSize = UI_MAIN_MENU_FONT_SIZE;
+    enterText.spacing = 1.0f;
+    enterText.tint = BLACK;
     
-    // Center the enter text below the start text
-    int enterWidth = render::MeasureText(std::string(enterText.text), enterText.fontSize);
+    // Center the enter text using MeasureTextEx with the Lander font
+    Vector2 enterSize = MeasureTextEx(landerFont, std::string(enterText.text).c_str(), enterText.fontSize, enterText.spacing);
     enterTransform.position = Vector2{
-        (VIRTUAL_WIDTH - enterWidth) / 2.0f,
+        (VIRTUAL_WIDTH - enterSize.x) / 2.0f,
         VIRTUAL_HEIGHT * 2.0f / 3.0f + startText.fontSize
     };
 }

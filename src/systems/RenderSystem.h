@@ -50,9 +50,6 @@ public:
             static_cast<float>(viewportHeight)
         };
         
-        // Clear the entire screen to black first (for letterboxing)
-        ClearBackground(BLACK);
-        
         // Begin rendering to the render texture
         BeginTextureMode(camera.target);
         {
@@ -113,7 +110,7 @@ public:
                     const auto& text = textView.get<TextComponent>(textEntity);
 
                     // Draw the text with rotation
-                    render::DrawText(std::string(text.text).c_str(), 
+                    render::DrawText(str(text.text).c_str(),
                         static_cast<int>(transform.position.x), 
                         static_cast<int>(transform.position.y), 
                         text.fontSize, 
@@ -125,14 +122,31 @@ public:
                 for (auto textEntity : proTextView) {
                     const auto& transform = proTextView.get<TransformComponent>(textEntity);
                     const auto& text = proTextView.get<TextComponentPro>(textEntity);
-
+                    
                     // Draw the text with rotation
                     render::DrawTextPro(
                         text.font,
-                        std::string(text.text).c_str(),
+                        str(text.text).c_str(),
                         transform.position,
                         {0, 0},
                         transform.rotation,
+                        text.fontSize,
+                        text.spacing,
+                        text.tint
+                    );
+                }
+
+                // Draw all Pixel Perfect text components in a single batch
+                auto pPerfectTextView = registry.view<TransformComponent, TextComponentPixelPerfect>();
+                for (auto textEntity : pPerfectTextView) {
+                    const auto& transform = pPerfectTextView.get<TransformComponent>(textEntity);
+                    const auto& text = pPerfectTextView.get<TextComponentPixelPerfect>(textEntity);
+
+                    // Draw the text with rotation
+                    render::DrawTextPixelPerfect(
+                        text.font,
+                        str(text.text).c_str(),
+                        transform.position,
                         text.fontSize,
                         text.spacing,
                         text.tint

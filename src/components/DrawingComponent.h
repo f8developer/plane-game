@@ -23,6 +23,8 @@ struct TextComponentPro : public IComponent {
     Color tint;
 };
 
+struct TextComponentPixelPerfect : public TextComponentPro {};
+
 struct CameraComponent : public IComponent {
     Camera2D camera;
 };

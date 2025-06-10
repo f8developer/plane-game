@@ -3,22 +3,28 @@
 //
 
 #include "Renderer.h"
+
+#include <cmath>
+
 #include "raylib.h"
 #include "Log.h"
 
 namespace render {
     // Static member initialization
     static std::vector<DrawCommand> drawCommands;
-    static RenderState currentState;
     static bool isBatching = false;
+    static Color backgroundColor = BLUE;  // Default background color
 
     void Initialize() {
         drawCommands.reserve(1000); // Pre-allocate space for commands
-        currentState = RenderState();
     }
 
     void Shutdown() {
         drawCommands.clear();
+    }
+
+    void SetBackgroundColor(Color color) {
+        backgroundColor = color;
     }
 
     void BeginBatch() {
@@ -66,29 +72,12 @@ namespace render {
         drawCommands.clear();
     }
 
-    void SetColor(Color color) {
-        currentState.currentColor = color;
-    }
-
-    void SetRotation(float rotation) {
-        currentState.currentRotation = rotation;
-    }
-
-    void SetOrigin(Vector2 origin) {
-        currentState.currentOrigin = origin;
-    }
-
-    void SetFont(Font font, int fontSize) {
-        currentState.currentFont = font;
-        currentState.currentFontSize = fontSize;
-    }
-
     void BeginDraw() {
         BeginDrawing();
     }
 
     void Clear() {
-        ClearBackground(RAYWHITE);
+        ClearBackground(backgroundColor);
     }
 
     void EndDraw() {
@@ -120,6 +109,21 @@ namespace render {
 
     void DrawTextPro(Font font, const char* text, Vector2 position, Vector2 origin, float rotation, float fontSize, float spacing, Color tint) {
         ::DrawTextPro(font, text, position, origin, rotation, fontSize, spacing, tint);
+    }
+
+    void DrawTextPixelPerfect(Font font, const char *text, Vector2 position, float fontSize, float spacing,
+        Color tint) {
+        // Force integer positions
+        Vector2 pixelPos = {
+            roundf(position.x),
+            roundf(position.y)
+        };
+
+        // Force integer spacing
+        float pixelSpacing = roundf(spacing);
+
+        // Draw with exact positioning
+        ::DrawTextEx(font, text, pixelPos, fontSize, pixelSpacing, tint);
     }
 
     int MeasureText(const str& text, int fontSize) {

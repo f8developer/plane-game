@@ -22,11 +22,11 @@ public:
         }
 
         // Update text visibility
-        auto view = registry.view<TextComponent>();
+        auto view = registry.view<TextComponentPixelPerfect>();
         for (auto entity : view) {
-            auto& text = view.get<TextComponent>(entity);
+            auto& text = view.get<TextComponentPixelPerfect>(entity);
             if (text.text == "INSERT CREDIT(S)" || text.text == "OR PRESS ENTER") {
-                text.color.a = isVisible ? 255 : 0;
+                text.tint.a = isVisible ? 255 : 0;
             }
         }
 

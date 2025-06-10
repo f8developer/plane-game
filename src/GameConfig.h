@@ -40,15 +40,15 @@
 #define BULLET_BASE_HEIGHT 5.0f
 
 // UI configuration
-#define UI_TITLE_FONT_SIZE 26
-#define UI_START_TEXT_FONT_SIZE 18
-#define UI_ENTER_TEXT_FONT_SIZE 14
-#define UI_DEFAULT_FONT_SIZE 20
+#define UI_MAIN_MENU_FONT_SIZE 7
+#define UI_DEFAULT_FONT_SIZE 14
 
 // Engine configuration
 #define ENGINE_FIXED_TIME_STEP 0.02f
 #define ENGINE_MAX_QUEUED_TASKS 1000
-#define ENGINE_MAX_ACCUMULATOR 0.25f
-#define ENGINE_NUM_WORKER_THREADS 4
+
+// Common game assets
+#define FONT_LANDER "fonts/Lander.ttf"
+#define FONT_LANDER_BOLD "fonts/Lander Bold.ttf"
 
 #endif //GAMECONFIG_H 
