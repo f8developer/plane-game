@@ -1,17 +1,15 @@
 #include "Game.h"
 #include "../engine/Engine.h"
+#include "GameConfig.h"
 
-#define GAME_WIDTH 800
-#define GAME_HEIGHT 600
-
-#define GAME_TITLE "A Plane Game"
-
-// TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
     unique_ptr<Game> game = std::make_unique<Game>();
 
     Engine engine;
-    engine.Start(GAME_WIDTH,GAME_HEIGHT, GAME_TITLE, reinterpret_cast<unique_ptr<Game>&&>(game));
+    Engine::SetProfilingEnabled(false);
+    Engine::SetFrameStatsEnabled(false);  // Disable frame stats reporting
+    //Engine::SetProfilingEnabled(true, 165*2);
+    engine.Start(GAME_WIDTH, GAME_HEIGHT, GAME_TITLE, std::move(game));
 
     return 0;
 }
