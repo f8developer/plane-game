@@ -1,6 +1,7 @@
 file(GLOB_RECURSE GAME_SOURCES 
     *.cpp
     scenes/*.cpp
+    systems/*.cpp
 )
 add_library(game ${GAME_SOURCES})
 target_include_directories(game PUBLIC 

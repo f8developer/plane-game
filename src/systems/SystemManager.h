@@ -5,6 +5,7 @@
 #include <functional>
 #include <array>
 #include <entt/entt.hpp>
+#include <unordered_set>
 
 class SystemManager {
 public:
@@ -17,46 +18,80 @@ public:
     };
 
     using SystemFunction = std::function<void(entt::registry&, float)>;
+    using SystemID = size_t;
 
     // Add a system to a specific update type
-    void AddSystem(SystemFunction system, UpdateType updateType) {
+    SystemID AddSystem(SystemFunction system, UpdateType updateType) {
+        SystemID id = nextSystemID++;
         systems[static_cast<size_t>(updateType)].push_back(std::move(system));
+        systemIDs[static_cast<size_t>(updateType)].push_back(id);
+        return id;
     }
 
     // Remove a system from a specific update type
-    void RemoveSystem(const SystemFunction& system, UpdateType updateType) {
-        auto& systemList = systems[static_cast<size_t>(updateType)];
-        systemList.erase(
-            std::remove_if(systemList.begin(), systemList.end(),
-                [&system](const SystemFunction& s) {
-                    return s.target_type() == system.target_type();
-                }),
-            systemList.end()
-        );
+    void RemoveSystem(SystemID id, UpdateType updateType) {
+        size_t typeIndex = static_cast<size_t>(updateType);
+        auto& systemList = systems[typeIndex];
+        auto& idList = systemIDs[typeIndex];
+        
+        for (size_t i = 0; i < idList.size(); ++i) {
+            if (idList[i] == id) {
+                systemList.erase(systemList.begin() + i);
+                idList.erase(idList.begin() + i);
+                pausedSystems.erase(id);
+                break;
+            }
+        }
     }
 
     // Execute all systems of a specific type
     void ExecuteSystems(UpdateType updateType, entt::registry& registry, float deltaTime) {
         const auto& systemList = systems[static_cast<size_t>(updateType)];
-        for (const auto& system : systemList) {
-            system(registry, deltaTime);
+        const auto& idList = systemIDs[static_cast<size_t>(updateType)];
+        
+        for (size_t i = 0; i < systemList.size(); ++i) {
+            if (pausedSystems.find(idList[i]) == pausedSystems.end()) {
+                systemList[i](registry, deltaTime);
+            }
         }
+    }
+
+    // Pause a specific system
+    void PauseSystem(SystemID id) {
+        pausedSystems.insert(id);
+    }
+
+    // Resume a specific system
+    void ResumeSystem(SystemID id) {
+        pausedSystems.erase(id);
+    }
+
+    // Check if a system is paused
+    bool IsSystemPaused(SystemID id) const {
+        return pausedSystems.find(id) != pausedSystems.end();
     }
 
     // Clear all systems of a specific type
     void ClearSystems(UpdateType updateType) {
-        systems[static_cast<size_t>(updateType)].clear();
+        size_t typeIndex = static_cast<size_t>(updateType);
+        systems[typeIndex].clear();
+        systemIDs[typeIndex].clear();
     }
 
     // Clear all systems
     void ClearAllSystems() {
-        for (auto& systemList : systems) {
-            systemList.clear();
+        for (size_t i = 0; i < static_cast<size_t>(UpdateType::Count); ++i) {
+            systems[i].clear();
+            systemIDs[i].clear();
         }
+        pausedSystems.clear();
     }
 
 private:
     std::array<std::vector<SystemFunction>, static_cast<size_t>(UpdateType::Count)> systems;
+    std::array<std::vector<SystemID>, static_cast<size_t>(UpdateType::Count)> systemIDs;
+    std::unordered_set<SystemID> pausedSystems;
+    SystemID nextSystemID = 0;
 };
 
 #endif // SYSTEM_MANAGER_H 

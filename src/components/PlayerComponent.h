@@ -42,4 +42,19 @@ struct EnemyComponent : public IComponent {
     float moveSpeed = ENEMY_MOVE_SPEED;  // Slower than player
 };
 
+enum class TransitionState {
+    None,
+    Landing,
+    Landed,
+    TakingOff
+};
+
+struct TransitionComponent : public IComponent {
+    TransitionState state = TransitionState::None;
+    float progress = 0.0f;  // 0.0 to 1.0
+    float speed = 2.0f;     // Speed of transition
+    Vector2 targetPosition; // Landing/takeoff position
+    float targetRotation = 0.0f; // Target rotation during transition
+};
+
 #endif //PLAYERCOMPONENT_H
