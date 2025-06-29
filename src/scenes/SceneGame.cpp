@@ -10,7 +10,7 @@
 #include "AssetManager.h"
 #include "components/PlayerComponent.h"
 #include "systems/MovementSystem.h"
-#include "systems/TransitionSystem.h"
+#include "../systems/game/TransitionSystem.h"
 #include "systems/RenderSystem.h"
 
 SceneGame::~SceneGame() {
@@ -26,105 +26,131 @@ void SceneGame::Load() {
     // Initialize systems first
     BulletSystem::Initialize(SCENE_NAME);
     
+    // Create TransitionSystem instance
+    transitionSystem = std::make_unique<TransitionSystem>(&systemManager);
+
     // Register systems and store IDs
     LOG_DEBUG("Registering systems");
+
     movementSystemID = systemManager.AddSystem(
         [](entt::registry& reg, float dt) { MovementSystem::Update(reg, dt); },
         SystemManager::UpdateType::Update
     );
     LOG_DEBUG("Movement system registered with ID: %llu", movementSystemID);
-    
+
     bulletSystemID = systemManager.AddSystem(
         [](entt::registry& reg, float dt) { BulletSystem::Update(reg, dt); },
         SystemManager::UpdateType::Update
     );
     LOG_DEBUG("Bullet system registered with ID: %llu", bulletSystemID);
 
+    // Register transition system with lambda that captures the instance
     transitionSystemID = systemManager.AddSystem(
-        [](entt::registry& reg, float dt) { TransitionSystem::Update(reg, dt); },
+        [this](entt::registry& reg, float dt) {
+            if (transitionSystem) {
+                transitionSystem->Update(reg, dt);
+            }
+        },
         SystemManager::UpdateType::Update
     );
     LOG_DEBUG("Transition system registered with ID: %llu", transitionSystemID);
-    
+
     // Add render system
     systemManager.AddSystem(
         [](entt::registry& reg, float dt) { RenderSystem::DrawPixelPerfect(reg); },
         SystemManager::UpdateType::Draw
     );
-    
+
     // Set up transition system BEFORE creating player
     LOG_DEBUG("Setting up transition system");
-    TransitionSystem::SetSystemManager(&systemManager);
-    TransitionSystem::SetSystemIDs(movementSystemID, bulletSystemID, transitionSystemID);
-    
+    transitionSystem->SetSystemIDs(movementSystemID, bulletSystemID, transitionSystemID);
+
     // Create player entity
     LOG_DEBUG("Creating player entity");
     auto player = registry.create();
-    
-    // Add components to player
+
+    // Add components to player - FIXED: Added template arguments
     auto& transform = registry.emplace<TransformComponent>(player);
     auto& player_image = registry.emplace<SpriteComponent>(player);
     auto& player_comp = registry.emplace<PlayerComponent>(player);
     auto& transition = registry.emplace<TransitionComponent>(player);
-    
+
     // Set up player transform
     transform.position = Vector2{ VIRTUAL_WIDTH / 2.0f, VIRTUAL_HEIGHT / 4.0f };
     transform.rotation = 0.0f;
-    
+
     // Set up player sprite
     AssetManager::AddSceneTexture("player", "bomber_one.png", SCENE_NAME);
     auto& texture = AssetManager::GetTexture("player");
     player_image.texture = &texture;
     player_image.size = Vector2{ PLAYER_SPRITE_SIZE, PLAYER_SPRITE_SIZE };
     player_image.origin = Vector2{ PLAYER_SPRITE_SIZE/2.0f, PLAYER_SPRITE_SIZE/2.0f };
-    
+
     // Set up player movement properties
     player_comp.moveSpeed = PLAYER_MOVE_SPEED;
-    
+
     // Set up transition component
     transition.state = TransitionState::Landing;
     transition.speed = 1.0f;
     transition.targetPosition = Vector2{ VIRTUAL_WIDTH / 2.0f, VIRTUAL_HEIGHT - PLAYER_SPRITE_SIZE * 2.0f };
     transition.targetRotation = 0.0f;
-    
+
     // Initialize transition system after player is set up
     LOG_DEBUG("Initializing transition system");
-    TransitionSystem::Initialize(registry);
-    
+    transitionSystem->Initialize(registry);
+
     // Pause movement and bullet systems during transition
     LOG_DEBUG("Pausing movement and bullet systems");
     systemManager.PauseSystem(movementSystemID);
     systemManager.PauseSystem(bulletSystemID);
-    
+
     LOG_DEBUG("Game Scene Load Complete");
 }
 
 void SceneGame::Unload() {
     LOG_DEBUG("Starting Game Scene Unload");
-    
-    // Clean up all entities in the registry
-    auto view = registry.view<TransformComponent, SpriteComponent>();
+
+    // Shutdown transition system before cleanup
+    if (transitionSystem) {
+        transitionSystem->Shutdown(registry);
+        transitionSystem.reset();
+    }
+
+    // Clean up all entities in the registry - FIXED: Added template arguments and proper checks
+    auto view = registry.view<entt::entity>();
     for (auto entity : view) {
-        registry.remove<TransformComponent>(entity);
-        registry.remove<SpriteComponent>(entity);
+        if (registry.all_of<TransformComponent>(entity)) {
+            registry.remove<TransformComponent>(entity);
+        }
+        if (registry.all_of<SpriteComponent>(entity)) {
+            registry.remove<SpriteComponent>(entity);
+        }
         if (registry.all_of<PlayerComponent>(entity)) {
             registry.remove<PlayerComponent>(entity);
         }
         if (registry.all_of<TransitionComponent>(entity)) {
             registry.remove<TransitionComponent>(entity);
         }
-        if (registry.all_of<BulletComponent>(entity)) {
-            registry.remove<BulletComponent>(entity);
+        if (registry.all_of<EnemyComponent>(entity)) {
+            registry.remove<EnemyComponent>(entity);
+        }
+        if (registry.all_of<PixelPerfectCameraComponent>(entity)) {
+            auto& camera = registry.get<PixelPerfectCameraComponent>(entity);
+            camera.OnDestroy(); // Properly cleanup render texture
+            registry.remove<PixelPerfectCameraComponent>(entity);
         }
         registry.destroy(entity);
     }
-    
+
     // Clear all systems
     systemManager.ClearAllSystems();
-    
+    movementSystemID = 0;
+    bulletSystemID = 0;
+    transitionSystemID = 0;
+
     // Remove all scene textures
     AssetManager::RemoveSceneTextures(SCENE_NAME);
-    
+
     LOG_DEBUG("Game Scene Unload Complete");
 }
 
@@ -152,13 +178,13 @@ void SceneGame::SetupCamera() {
 
     // Initialize the camera
     camera.OnCreate();
-    
+
     // Set up the world space camera
     camera.worldSpaceCamera.offset = Vector2{ VIRTUAL_WIDTH / 2.0f, VIRTUAL_HEIGHT / 2.0f };
     camera.worldSpaceCamera.target = Vector2{ VIRTUAL_WIDTH / 2.0f, VIRTUAL_HEIGHT / 2.0f };
     camera.worldSpaceCamera.zoom = 1.0f;
     camera.worldSpaceCamera.rotation = 0.0f;
-    
+
     // Set up the screen space camera
     camera.screenSpaceCamera.offset = Vector2{ GAME_WIDTH / 2.0f, GAME_HEIGHT / 2.0f };
     camera.screenSpaceCamera.target = Vector2{ GAME_WIDTH / 2.0f, GAME_HEIGHT / 2.0f };
@@ -168,7 +194,6 @@ void SceneGame::SetupCamera() {
 
 void SceneGame::SpawnShip() {
     shipEntity = registry.create();
-
     auto& transform = registry.emplace<TransformComponent>(shipEntity);
     auto& ship_image = registry.emplace<SpriteComponent>(shipEntity);
 
@@ -177,8 +202,8 @@ void SceneGame::SpawnShip() {
     auto& texture = AssetManager::GetTexture("ship");
 
     // Define the ship size (make it wider than tall for a boat-like appearance)
-    ship_image.size.x = PLAYER_SPRITE_SIZE * 3.0f;  // Make ship wider
-    ship_image.size.y = PLAYER_SPRITE_SIZE * 1.5f;  // Make ship shorter
+    ship_image.size.x = PLAYER_SPRITE_SIZE * 3.0f; // Make ship wider
+    ship_image.size.y = PLAYER_SPRITE_SIZE * 1.5f; // Make ship shorter
 
     // Position the ship at the bottom of the screen
     transform.position.x = VIRTUAL_WIDTH / 2.0f;
@@ -186,13 +211,12 @@ void SceneGame::SpawnShip() {
 
     // Set up the ship sprite
     ship_image.texture = &texture;
-    ship_image.tint = BLUE;  // Make ship blue to distinguish it
-    ship_image.origin = Vector2{ ship_image.size.x/2.0f, ship_image.size.y/2.0f };  // Set origin to center for rotation
+    ship_image.tint = BLUE; // Make ship blue to distinguish it
+    ship_image.origin = Vector2{ ship_image.size.x/2.0f, ship_image.size.y/2.0f }; // Set origin to center for rotation
 }
 
 void SceneGame::SpawnPlayer() {
     auto player = registry.create();
-
     auto& transform = registry.emplace<TransformComponent>(player);
     auto& player_comp = registry.emplace<PlayerComponent>(player);
     auto& player_image = registry.emplace<SpriteComponent>(player);
@@ -217,32 +241,40 @@ void SceneGame::SpawnPlayer() {
 }
 
 void SceneGame::StartTransition() {
+    // FIXED: Added template arguments to views
     auto playerView = registry.view<TransformComponent, TransitionComponent>();
     auto shipView = registry.view<TransformComponent>();
-    
+
     if (playerView.begin() == playerView.end() || !registry.valid(shipEntity)) return;
 
     auto playerEntity = *playerView.begin();
-    auto& playerTransform = playerView.get<TransformComponent>(playerEntity);
-    auto& playerTransition = playerView.get<TransitionComponent>(playerEntity);
-    const auto& shipTransform = shipView.get<TransformComponent>(shipEntity);
+
+    // FIXED: Added defensive checks and template arguments
+    if (!registry.valid(playerEntity) ||
+        !registry.all_of<TransformComponent, TransitionComponent>(playerEntity) ||
+        !registry.valid(shipEntity) ||
+        !registry.all_of<TransformComponent>(shipEntity)) {
+        return;
+    }
+
+    auto& playerTransform = registry.get<TransformComponent>(playerEntity);
+    auto& playerTransition = registry.get<TransitionComponent>(playerEntity);
+    const auto& shipTransform = registry.get<TransformComponent>(shipEntity);
 
     // Set up landing transition
     playerTransition.state = TransitionState::Landing;
     playerTransition.progress = 0.0f;
     playerTransition.targetPosition = shipTransform.position;
-    playerTransition.targetRotation = 180.0f;  // Rotate to face downward
+    playerTransition.targetRotation = 180.0f; // Rotate to face downward
 
     // Pause movement and bullet systems during transition
     systemManager.PauseSystem(movementSystemID);
     systemManager.PauseSystem(bulletSystemID);
-    
     isTransitioning = true;
 }
 
 void SceneGame::SpawnEnemy() {
     auto enemy = registry.create();
-
     auto& transform = registry.emplace<TransformComponent>(enemy);
     auto& enemy_comp = registry.emplace<EnemyComponent>(enemy);
     auto& enemy_image = registry.emplace<SpriteComponent>(enemy);
@@ -257,13 +289,11 @@ void SceneGame::SpawnEnemy() {
 
     // Position the enemy at a random x position at the top of the screen
     transform.position.x = static_cast<float>(GetRandomValue(0, VIRTUAL_WIDTH));
-    transform.position.y = enemy_image.size.y/2.0f + 5.0f;  // Just below top edge
-    transform.rotation = 180.0f;  // Rotate 180 degrees to face downward
+    transform.position.y = enemy_image.size.y/2.0f + 5.0f; // Just below top edge
+    transform.rotation = 180.0f; // Rotate 180 degrees to face downward
 
     // Set the source rectangle to use the entire texture
     enemy_image.texture = &texture;
-    enemy_image.tint = RED;  // Make enemy red to distinguish it
-    enemy_image.origin = Vector2{ enemy_image.size.x, enemy_image.size.y };  // Set origin to center for rotation
-
-    LOG_DEBUG("Enemy spawned with %d health", enemy_comp.health);
+    enemy_image.tint = RED; // Make enemy red to distinguish it
+    enemy_image.origin = Vector2{ enemy_image.size.x/2.0f, enemy_image.size.y/2.0f }; // Set origin to center for rotation
 }

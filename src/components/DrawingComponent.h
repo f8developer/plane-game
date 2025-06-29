@@ -49,27 +49,27 @@ struct PixelPerfectCameraComponent : public IComponent {
     // Source and destination rectangles for rendering
     Rectangle sourceRec;
     Rectangle destRec;
-    
+
     void OnCreate() override {
         // Initialize cameras with default settings
         worldSpaceCamera = Camera2D{};
         screenSpaceCamera = Camera2D{};
-        
+
         // Initialize the render texture
         target = LoadRenderTexture(VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-        
+
         // Set up source rectangle (flipped for OpenGL)
-        sourceRec = { 
-            0.0f, 
-            0.0f, 
-            static_cast<float>(target.texture.width), 
-            -static_cast<float>(target.texture.height) 
+        sourceRec = {
+            0.0f,
+            0.0f,
+            static_cast<float>(target.texture.width),
+            -static_cast<float>(target.texture.height)
         };
-        
+
         // Initial destination rectangle will be updated by RenderSystem
         destRec = { 0.0f, 0.0f, static_cast<float>(VIRTUAL_WIDTH), static_cast<float>(VIRTUAL_HEIGHT) };
     }
-    
+
     void OnDestroy() override {
         UnloadRenderTexture(target);
     }

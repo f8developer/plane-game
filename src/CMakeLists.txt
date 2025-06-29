@@ -1,10 +1,22 @@
-file(GLOB_RECURSE GAME_SOURCES 
-    *.cpp
-    scenes/*.cpp
-    systems/*.cpp
+file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS
+        *.cpp
+        *.hpp
+        *.h
+        scenes/*.cpp
+        systems/*.cpp
+        components/*.cpp
 )
+
+file(GLOB_RECURSE ALL_DIRS LIST_DIRECTORIES true *)
+foreach(DIR ${ALL_DIRS})
+    if(IS_DIRECTORY ${DIR})
+        list(APPEND INCLUDE_DIRS ${DIR})
+    endif()
+endforeach()
+
 add_library(game ${GAME_SOURCES})
-target_include_directories(game PUBLIC 
+target_include_directories(game PUBLIC
+    ${INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/scenes
     ${CMAKE_CURRENT_SOURCE_DIR}/systems

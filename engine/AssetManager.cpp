@@ -3,6 +3,7 @@
 //
 
 #include "AssetManager.h"
+#include "Log.h"
 
 #include <ranges>
 
@@ -145,12 +146,24 @@ void AssetManager::AddSceneFontWithCodepoints(std::string_view name, std::string
 }
 
 const Texture& AssetManager::GetTexture(std::string_view name) noexcept {
-    return textures.at(InternString(name)).texture;
+    auto it = textures.find(InternString(name));
+    if (it == textures.end()) {
+        LOG_ERROR("Texture '%s' not found!", std::string(name).c_str());
+        static Texture dummyTexture{};
+        return dummyTexture;
+    }
+    return it->second.texture;
 }
 
 std::pair<const Texture&, Rectangle> AssetManager::GetTextureFrame(std::string_view name, const int frame) noexcept {
     std::string_view internedName = InternString(name);
-    auto& textureData = textures.at(internedName);
+    auto it = textures.find(internedName);
+    if (it == textures.end()) {
+        LOG_ERROR("Texture '%s' not found!", std::string(name).c_str());
+        static Texture dummyTexture{};
+        return {dummyTexture, {0,0,0,0}};
+    }
+    auto& textureData = it->second;
     
     // Default source rectangle (entire texture)
     Rectangle sourceRec = {
@@ -171,7 +184,13 @@ std::pair<const Texture&, Rectangle> AssetManager::GetTextureFrame(std::string_v
 
 std::pair<const Texture&, Rectangle> AssetManager::GetTile(std::string_view name, int tileX, int tileY) noexcept {
     std::string_view internedName = InternString(name);
-    auto& textureData = textures.at(internedName);
+    auto it = textures.find(internedName);
+    if (it == textures.end()) {
+        LOG_ERROR("Texture '%s' not found!", std::string(name).c_str());
+        static Texture dummyTexture{};
+        return {dummyTexture, {0,0,0,0}};
+    }
+    auto& textureData = it->second;
     
     // Default source rectangle (entire texture)
     Rectangle sourceRec = {
@@ -192,7 +211,13 @@ std::pair<const Texture&, Rectangle> AssetManager::GetTile(std::string_view name
 }
 
 const Font& AssetManager::GetFont(std::string_view name) noexcept {
-    return fonts.at(InternString(name));
+    auto it = fonts.find(InternString(name));
+    if (it == fonts.end()) {
+        LOG_ERROR("Font '%s' not found!", std::string(name).c_str());
+        static Font dummyFont{};
+        return dummyFont;
+    }
+    return it->second;
 }
 
 void AssetManager::RemoveSceneTextures(i32 sceneIdentity) noexcept {
@@ -208,15 +233,25 @@ void AssetManager::RemoveSceneTextures(i32 sceneIdentity) noexcept {
 }
 
 void AssetManager::UnloadTexture(std::string_view name) noexcept {
-    const Texture& texture = GetTexture(name);
+    auto it = textures.find(InternString(name));
+    if (it == textures.end()) {
+        LOG_ERROR("Tried to unload missing texture '%s'", std::string(name).c_str());
+        return;
+    }
+    const Texture& texture = it->second.texture;
     ::UnloadTexture(texture);
-    textures.erase(InternString(name));
+    textures.erase(it);
 }
 
 void AssetManager::UnloadFont(std::string_view name) noexcept {
-    const Font& font = GetFont(name);
+    auto it = fonts.find(InternString(name));
+    if (it == fonts.end()) {
+        LOG_ERROR("Tried to unload missing font '%s'", std::string(name).c_str());
+        return;
+    }
+    const Font& font = it->second;
     ::UnloadFont(font);
-    fonts.erase(InternString(name));
+    fonts.erase(it);
 }
 
 void AssetManager::RemoveSceneFonts(i32 sceneIdentity) noexcept {

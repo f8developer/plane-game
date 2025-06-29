@@ -33,10 +33,11 @@ public:
         size_t typeIndex = static_cast<size_t>(updateType);
         auto& systemList = systems[typeIndex];
         auto& idList = systemIDs[typeIndex];
-        
         for (size_t i = 0; i < idList.size(); ++i) {
             if (idList[i] == id) {
-                systemList.erase(systemList.begin() + i);
+                if (i < systemList.size()) {
+                    systemList.erase(systemList.begin() + i);
+                }
                 idList.erase(idList.begin() + i);
                 pausedSystems.erase(id);
                 break;
@@ -48,8 +49,8 @@ public:
     void ExecuteSystems(UpdateType updateType, entt::registry& registry, float deltaTime) {
         const auto& systemList = systems[static_cast<size_t>(updateType)];
         const auto& idList = systemIDs[static_cast<size_t>(updateType)];
-        
-        for (size_t i = 0; i < systemList.size(); ++i) {
+        size_t count = std::min(systemList.size(), idList.size());
+        for (size_t i = 0; i < count; ++i) {
             if (pausedSystems.find(idList[i]) == pausedSystems.end()) {
                 systemList[i](registry, deltaTime);
             }
@@ -91,7 +92,8 @@ private:
     std::array<std::vector<SystemFunction>, static_cast<size_t>(UpdateType::Count)> systems;
     std::array<std::vector<SystemID>, static_cast<size_t>(UpdateType::Count)> systemIDs;
     std::unordered_set<SystemID> pausedSystems;
-    SystemID nextSystemID = 0;
+    // SystemID 0 is reserved as invalid; real IDs start from 1
+    SystemID nextSystemID = 1;
 };
 
 #endif // SYSTEM_MANAGER_H 
